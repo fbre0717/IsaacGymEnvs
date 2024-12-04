@@ -823,61 +823,6 @@ class SkeletonState(Serializable):
         scale_to_target_skeleton: float,
         z_up: bool = True,
     ) -> "SkeletonState":
-        """ 
-        Retarget the skeleton state to a target skeleton tree. This is a naive retarget
-        implementation with rough approximations. The function follows the procedures below.
-
-        Steps:
-            1. Drop the joints from the source (self) that do not belong to the joint mapping\
-            with an implementation that is similar to "keep_nodes_by_names()" - take a\
-            look at the function doc for more details (same for source_tpose)
-            
-            2. Rotate the source state and the source tpose by "rotation_to_target_skeleton"\
-            to align the source with the target orientation
-            
-            3. Extract the root translation and normalize it to match the scale of the target\
-            skeleton
-            
-            4. Extract the global rotation from source state relative to source tpose and\
-            re-apply the relative rotation to the target tpose to construct the global\
-            rotation after retargetting
-            
-            5. Combine the computed global rotation and the root translation from 3 and 4 to\
-            complete the retargeting.
-            
-            6. Make feet on the ground (global translation z)
-
-        :param joint_mapping: a dictionary of that maps the joint node from the source skeleton to \
-        the target skeleton
-        :type joint_mapping: Dict[str, str]
-        
-        :param source_tpose_local_rotation: the local rotation of the source skeleton
-        :type source_tpose_local_rotation: Tensor
-        
-        :param source_tpose_root_translation: the root translation of the source tpose
-        :type source_tpose_root_translation: np.ndarray
-        
-        :param target_skeleton_tree: the target skeleton tree
-        :type target_skeleton_tree: SkeletonTree
-        
-        :param target_tpose_local_rotation: the local rotation of the target skeleton
-        :type target_tpose_local_rotation: Tensor
-        
-        :param target_tpose_root_translation: the root translation of the target tpose
-        :type target_tpose_root_translation: Tensor
-        
-        :param rotation_to_target_skeleton: the rotation that needs to be applied to the source\
-        skeleton to align with the target skeleton. Essentially the rotation is t_R_s, where t is\
-        the frame of reference of the target skeleton and s is the frame of reference of the source\
-        skeleton
-        :type rotation_to_target_skeleton: Tensor
-        :param scale_to_target_skeleton: the factor that needs to be multiplied from source\
-        skeleton to target skeleton (unit in distance). For example, to go from `cm` to `m`, the \
-        factor needs to be 0.01.
-        :type scale_to_target_skeleton: float
-        :rtype: SkeletonState
-        """
-
         # STEP 0: Preprocess
         source_tpose = SkeletonState.from_rotation_and_root_translation(
             skeleton_tree=self.skeleton_tree,
@@ -899,7 +844,6 @@ class SkeletonState(Serializable):
             node_names, pairwise_translation
         )
 
-        # TODO: combine the following steps before STEP 3
         source_tpose = source_tpose._transfer_to(new_skeleton_tree)
         source_state = self._transfer_to(new_skeleton_tree)
 
@@ -930,19 +874,29 @@ class SkeletonState(Serializable):
             is_local=True,
         )
 
-        # STEP 3: Normalize to match the target scale
-        root_translation_diff = (
-            source_state.root_translation - source_tpose.root_translation
-        ) * scale_to_target_skeleton
-        # STEP 4: the global rotation from source state relative to source tpose and
-        # re-apply to the target
+        # STEP 3: Scale translation with height preservation
+        jump_scale = 0.3
+        source_height = torch.max(source_tpose.global_translation[..., 2]) - torch.min(source_tpose.global_translation[..., 2])
+        target_height = torch.max(target_tpose.global_translation[..., 2]) - torch.min(target_tpose.global_translation[..., 2])
+        height_ratio = (target_height / source_height) * jump_scale  # jump_scale 적용
+
+        # Handle broadcasting for root translations
+        base_height = source_tpose.root_translation[2]
+        vertical_motion = source_state.root_translation[..., 2] - base_height
+        scaled_vertical_motion = vertical_motion * height_ratio
+
+        # Create root translation with proper broadcasting
+        root_translation_diff = torch.zeros_like(source_state.root_translation)
+        root_translation_diff[..., 0:2] = (source_state.root_translation[..., 0:2] - 
+                                        source_tpose.root_translation[..., 0:2].unsqueeze(0)) * scale_to_target_skeleton
+        root_translation_diff[..., 2] = scaled_vertical_motion
+
+        # STEP 4: Relative rotation calculation
         current_skeleton_tree = source_state.skeleton_tree
         target_tpose_global_rotation = source_state.global_rotation[0, :].clone()
         for current_index, name in enumerate(current_skeleton_tree):
             if name in target_tpose.skeleton_tree:
-                target_tpose_global_rotation[
-                    current_index, :
-                ] = target_tpose.global_rotation[
+                target_tpose_global_rotation[current_index, :] = target_tpose.global_rotation[
                     target_tpose.skeleton_tree.index(name), :
                 ]
 
@@ -953,11 +907,12 @@ class SkeletonState(Serializable):
             global_rotation_diff, target_tpose_global_rotation
         )
 
-        # STEP 5: Putting 3 and 4 together
+        # STEP 5: Combine translations and rotations
         current_skeleton_tree = source_state.skeleton_tree
         shape = source_state.global_rotation.shape[:-1]
         shape = shape[:-1] + target_tpose.global_rotation.shape[-2:-1]
         new_global_rotation_output = quat_identity(shape)
+        
         for current_index, name in enumerate(target_skeleton_tree):
             while name not in current_skeleton_tree:
                 name = target_skeleton_tree.parent_of(name)
@@ -966,14 +921,21 @@ class SkeletonState(Serializable):
                 :, parent_index, :
             ]
 
+        # Create final translation with proper broadcasting
+        target_base_height = target_tpose.root_translation[2]
+        final_translation = target_tpose.root_translation.unsqueeze(0).expand(source_state.root_translation.shape[0], -1).clone()
+        final_translation[..., 0:2] += root_translation_diff[..., 0:2]
+        final_translation[..., 2] = target_base_height + root_translation_diff[..., 2]
+
         source_state = SkeletonState.from_rotation_and_root_translation(
             skeleton_tree=target_skeleton_tree,
             r=new_global_rotation_output,
-            t=target_tpose.root_translation + root_translation_diff,
+            t=final_translation,
             is_local=False,
         ).local_repr()
 
         return source_state
+
 
     def retarget_to_by_tpose(
         self,

@@ -205,7 +205,8 @@ def project_joints(motion):
 
 def main():
     # load retarget config
-    retarget_data_path = "data/configs/retarget_cmu_to_amp.json"
+    # retarget_data_path = "data/configs/retarget_cmu_to_amp.json"
+    retarget_data_path = "data/configs/retarget_wonder_to_amp.json"
     with open(retarget_data_path) as f:
         retarget_data = json.load(f)
 

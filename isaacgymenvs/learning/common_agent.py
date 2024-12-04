@@ -65,6 +65,9 @@ class CommonAgent(a2c_continuous.A2CAgent):
         self.bounds_loss_coef = config.get('bounds_loss_coef', None)
         self.clip_actions = config.get('clip_actions', True)
 
+        # seq_length 설정 추가 (이전의 seq_len을 대체)
+        self.seq_length = config.get('seq_length', 4)  # 기본값 4
+
         self.network_path = self.nn_dir
         
         net_config = self._build_net_config()
@@ -86,7 +89,7 @@ class CommonAgent(a2c_continuous.A2CAgent):
                 'num_steps' : self.horizon_length, 
                 'num_actors' : self.num_actors, 
                 'num_actions' : self.actions_num, 
-                'seq_len' : self.seq_len, 
+                'seq_len' : self.seq_length,  # seq_len을 seq_length로 업데이트
                 'model' : self.central_value_config['network'],
                 'config' : self.central_value_config, 
                 'writter' : self.writer,
@@ -95,7 +98,7 @@ class CommonAgent(a2c_continuous.A2CAgent):
             self.central_value_net = central_value.CentralValueTrain(**cv_config).to(self.ppo_device)
 
         self.use_experimental_cv = self.config.get('use_experimental_cv', True)
-        self.dataset = amp_datasets.AMPDataset(self.batch_size, self.minibatch_size, self.is_discrete, self.is_rnn, self.ppo_device, self.seq_len)
+        self.dataset = amp_datasets.AMPDataset(self.batch_size, self.minibatch_size, self.is_discrete, self.is_rnn, self.ppo_device, self.seq_length)
         self.algo_observer.after_init(self)
         
         return
