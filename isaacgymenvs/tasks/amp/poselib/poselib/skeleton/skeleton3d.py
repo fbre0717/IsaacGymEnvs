@@ -876,19 +876,31 @@ class SkeletonState(Serializable):
 
         # STEP 3: Scale translation with height preservation
         jump_scale = 0.3
+        horizontal_scale = 0.3
+
+        # 높이(z축) 비율 계산
         source_height = torch.max(source_tpose.global_translation[..., 2]) - torch.min(source_tpose.global_translation[..., 2])
         target_height = torch.max(target_tpose.global_translation[..., 2]) - torch.min(target_tpose.global_translation[..., 2])
-        height_ratio = (target_height / source_height) * jump_scale  # jump_scale 적용
+        height_ratio = (target_height / source_height) * jump_scale
+
+        # 수평(x,y축) 비율 계산
+        source_width = torch.max(source_tpose.global_translation[..., 0:2]) - torch.min(source_tpose.global_translation[..., 0:2])
+        target_width = torch.max(target_tpose.global_translation[..., 0:2]) - torch.min(target_tpose.global_translation[..., 0:2])
+        width_ratio = (target_width / source_width) * horizontal_scale
 
         # Handle broadcasting for root translations
         base_height = source_tpose.root_translation[2]
+        base_position_xy = source_tpose.root_translation[0:2]
+
         vertical_motion = source_state.root_translation[..., 2] - base_height
         scaled_vertical_motion = vertical_motion * height_ratio
 
+        horizontal_motion = source_state.root_translation[..., 0:2] - base_position_xy
+        scaled_horizontal_motion = horizontal_motion * width_ratio
+
         # Create root translation with proper broadcasting
         root_translation_diff = torch.zeros_like(source_state.root_translation)
-        root_translation_diff[..., 0:2] = (source_state.root_translation[..., 0:2] - 
-                                        source_tpose.root_translation[..., 0:2].unsqueeze(0)) * scale_to_target_skeleton
+        root_translation_diff[..., 0:2] = scaled_horizontal_motion
         root_translation_diff[..., 2] = scaled_vertical_motion
 
         # STEP 4: Relative rotation calculation
@@ -924,7 +936,7 @@ class SkeletonState(Serializable):
         # Create final translation with proper broadcasting
         target_base_height = target_tpose.root_translation[2]
         final_translation = target_tpose.root_translation.unsqueeze(0).expand(source_state.root_translation.shape[0], -1).clone()
-        final_translation[..., 0:2] += root_translation_diff[..., 0:2]
+        final_translation[..., 0:2] = target_tpose.root_translation[0:2] + root_translation_diff[..., 0:2]
         final_translation[..., 2] = target_base_height + root_translation_diff[..., 2]
 
         source_state = SkeletonState.from_rotation_and_root_translation(

@@ -1,6 +1,6 @@
 {
-    "source_motion": "data/loopkicks/cheat720.npy",
-    "target_motion_path": "data/loopkicks/amp_cheat720.npy",
+    "source_motion": "data/tricking/fullfull.npy",
+    "target_motion_path": "data/tricking/amp_fullfull.npy",
     "source_tpose": "data/wonder_tpose.npy",
     "target_tpose": "data/amp_humanoid_tpose.npy",
     "joint_mapping": {
@@ -23,6 +23,6 @@
     "rotation": [0, 0, 0, 1],
     "scale": 0.01,
 	"root_height_offset": 0,
-	"trim_frame_beg": 24,
-	"trim_frame_end": 59
+	"trim_frame_beg": -1,
+	"trim_frame_end": -1
 }

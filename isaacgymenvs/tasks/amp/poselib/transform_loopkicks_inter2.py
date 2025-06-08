@@ -132,7 +132,8 @@ def transform_motion(motion: SkeletonMotion, frame_beg=-1, frame_end=-1, rot_x=9
 
 
 if __name__ == "__main__":
-    fbx_path = "data/loopkicks/cheat720.fbx"
+    fbx_path = "data/tricking/fullfull.fbx"
+
     adjust = True
 
     motion = SkeletonMotion.from_fbx(
@@ -143,13 +144,13 @@ if __name__ == "__main__":
 
     transformed_motion = transform_motion(
         motion,
-        frame_beg=-1,
-        frame_end=79,
+        frame_beg=36,
+        frame_end=60,
         rot_x=90, 
         rot_z=0, 
-        trans_x=1,
-        trans_y=0, 
-        trans_z=5.8
+        trans_x=0,
+        trans_y=0.6, 
+        trans_z=4.4
     )
     npy_path = fbx_path.replace(".fbx", ".npy")
 
@@ -157,7 +158,7 @@ if __name__ == "__main__":
         # 점프 높이 보정 적용
         final_motion = adjust_jump_height(
             transformed_motion, 
-            key_frames=[35, 45, 55], 
+            key_frames=[2, 12, 22], 
             target_max_height=1.4
         )
         final_motion.to_file(npy_path)
@@ -175,11 +176,26 @@ if __name__ == "__main__":
 # raiz0 0~50
 
 ###shosei
-# btwist 174~218
-# corks 261~288
-# dcorks 349~378
+# btwist 174~218 h=1.4
+# corks 261~288 h=1.4
+# dcorks 349~378 h=1.4
 
 ### loopkicks
 # raiz 0,53/20,29,38
 # fulltwist 0,69/27,39,50
-# cheat720 0,78/35,45,55
+# cheat720 0,78/35,45,55 h=1.4
+
+# raiz4 
+# 22,29,35
+# 16,40/6,13,19 h=1.4
+
+# aerial_raizx4 => amp_fs_raizx4
+# 28, 34, 42
+# 22, 45/6,12,20 h=1.2 => 1.4
+
+# shurikencutter 
+# 8, 19, 30
+
+# fullfull
+# 38, 48, 58
+# 36,61/2,12,22

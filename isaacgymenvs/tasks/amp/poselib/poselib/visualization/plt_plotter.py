@@ -240,15 +240,6 @@ class Matplotlib3DPlotter(BasePlotter):
         self._ax = p3.Axes3D(self._fig)
         self._artist_cache = {}
 
-        self._ax.set_xlim3d(-1, 1)
-        self._ax.set_ylim3d(-1, 1)
-        self._ax.set_zlim3d(0, 2)
-        # self._ax.set_xlim3d(-2, 2)
-        # self._ax.set_ylim3d(-2, 2)
-        # self._ax.set_zlim3d(-2, 2)
-        # self._ax.set_xlim3d(-10, 10)
-        # self._ax.set_ylim3d(-10, 10)
-        # self._ax.set_zlim3d(-10, 10)
         self._create_impl_callables = {
             "Draw3DLines": self._lines_create_impl,
             "Draw3DDots": self._dots_create_impl,
@@ -426,8 +417,34 @@ class Matplotlib3DPlotter(BasePlotter):
         self._ax.set_zlim3d([zmean - plot_radius, zmean + plot_radius])
 
     def _draw(self):
-        # self._set_lim()
-        # self._set_aspect_equal_3d()
+        self._set_lim()
+        self._set_aspect_equal_3d()
+        self._ax.set_xlim3d(-1, 1)
+        self._ax.set_ylim3d(-1, 1)
+        self._ax.set_zlim3d(0, 2)
+        self._ax.set_xlim3d(-2, 2)
+        self._ax.set_ylim3d(-2, 2)
+        # self._ax.set_zlim3d(-2, 2)
+        # self._ax.set_xlim3d(-10, 10)
+        # self._ax.set_ylim3d(-10, 10)
+        # self._ax.set_zlim3d(-10, 10)
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()
+        plt.pause(0.00001)
+
+class CustomMatplotlib3DPlotter(Matplotlib3DPlotter):
+    def _draw(self):
+        self._set_lim()
+        self._set_aspect_equal_3d()
+        self._ax.set_xlim3d(-1, 1)
+        self._ax.set_ylim3d(-1, 1)
+        self._ax.set_zlim3d(0, 2)
+        # self._ax.set_xlim3d(-2, 2)
+        # self._ax.set_ylim3d(-2, 2)
+        # self._ax.set_zlim3d(-2, 2)
+        # self._ax.set_xlim3d(-10, 10)
+        # self._ax.set_ylim3d(-10, 10)
+        # self._ax.set_zlim3d(-10, 10)
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
         plt.pause(0.00001)

@@ -24,11 +24,16 @@ from poselib.visualization.common import plot_skeleton_state, plot_skeleton_moti
 # npy_file = "data/tricking/amp_tdr_corks_wonder.npy"
 # npy_file = "data/shosei/shosei_corks.npy"
 # npy_file = "data/shosei/amp_shosei_dcorks2_nostep.npy"
-# npy_file = "data/shosei/shosei_corks.npy"
+# npy_file = "data/shosei/amp_shosei_corks.npy"
 # npy_file = "data/loopkicks/amp_backflip.npy"
 # npy_file = "data/loopkicks/amp_fulltwist0.npy"
-npy_file = "data/loopkicks/amp_cheat720 copy.npy"
+# npy_file = "data/loopkicks/amp_cheat720.npy"
 # npy_file = "data/loopkicks/amp_raiz0.npy"
+# npy_file = "data/loopkicks/amp_raiz1.npy"
+npy_file = "data/tricking/raiz2.npy"
+npy_file = "data/tricking/amp_shurikencutter.npy"
+npy_file = "data/tricking/amp_raiz4.npy"
+npy_file = "data/tricking/amp_fs_raizx4.npy"
 
 
 npy_motion : SkeletonMotion = SkeletonMotion.from_file(npy_file)
